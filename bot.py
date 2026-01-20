@@ -63,13 +63,31 @@ async def daily_broadcast(context: ContextTypes.DEFAULT_TYPE):
     db.settings.update_one({"id": "global_state"}, {"$set": {"madhar_index": next_idx, "day_in_cycle": next_day}})
 
 # --- أمر الاختبار الفوري داخل المجموعة ---
-async def test_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """أرسل /test_group ليتأكد البوت من قدرته على الإرسال للمجموعة المحددة"""
-    try:
-        await context.bot.send_message(chat_id=GROUP_ID, text="✅ <b>فحص الربط:</b> البوت متصل بالمجموعة وبالقاعدة بنجاح!", parse_mode='HTML')
-    except Exception as e:
-        await update.message.reply_text(f"❌ خطأ في الإرسال للمجموعة: {e}")
 
+async def test_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        # 1. محاولة جلب الإعدادات
+        state = db.settings.find_one({"id": "global_state"})
+        if not state:
+            await update.message.reply_text("❌ لم أجد مجموعة settings في القاعدة!")
+            return
+
+        m_idx = state['madhar_index']
+        
+        # 2. محاولة جلب المظهر من مجموعة madahir
+        # تأكد أن اسم المجموعة في مونغو هو 'madahir' وليس شيئاً آخر
+        madhar = db.madahir.find_one({"index": m_idx})
+        
+        if madhar:
+            test_msg = f"✅ <b>تم سحب البيانات بنجاح!</b>\n\n"
+            test_msg += f"المظهر الحالي: {madhar['name']}\n"
+            test_msg += f"الوصف: {madhar['description']}"
+            await context.bot.send_message(chat_id=GROUP_ID, text=test_msg, parse_mode='HTML')
+        else:
+            await update.message.reply_text(f"❌ اتصلت بالقاعدة لكن لم أجد مظهر برقم {m_idx} في مجموعة madahir")
+            
+    except Exception as e:
+        await update.message.reply_text(f"❌ خطأ فني: {e}")
 if __name__ == '__main__':
     application = ApplicationBuilder().token(TOKEN).build()
     
