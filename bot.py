@@ -121,13 +121,24 @@ async def test_full_cycle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text, markup = build_message(madhar, d, p)
         await context.bot.send_message(chat_id=update.effective_chat.id, text=text, reply_markup=markup, parse_mode='HTML')
         await asyncio.sleep(1)
-
+async def test_group_connection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Checks if the bot can send a message to the defined GROUP_ID."""
+    try:
+        test_msg = await context.bot.send_message(
+            chat_id=GROUP_ID, 
+            text="✅ **فحص الاتصال:** البوت يعمل بنجاح في هذه المجموعة ومستعد لجدول الغد!",
+            parse_mode='HTML'
+        )
+        await update.message.reply_text(f"✅ تم إرسال رسالة التجربة بنجاح إلى المجموعة (ID: {GROUP_ID})")
+    except Exception as e:
+        await update.message.reply_text(f"❌ فشل الإرسال للمجموعة. تأكد من:\n1. البوت مضاف للمجموعة.\n2. البوت لديه صلاحية إرسال الرسائل.\n\nالخطأ: {str(e)}")
 # --- 6. التشغيل الأساسي (Main) ---
 async def main():
     request_config = HTTPXRequest(connect_timeout=60, read_timeout=60)
     # ملاحظة: يفضل تغيير التوكن للامان
     application = ApplicationBuilder().token(TOKEN).request(request_config).build()
     application.add_handler(CommandHandler('test_all', test_full_cycle))
+    application.add_handler(CommandHandler('test_group', test_group_connection))
     application.add_handler(CallbackQueryHandler(handle_callback))
 
     if application.job_queue:
