@@ -11,7 +11,7 @@ from telegram.request import HTTPXRequest
 # --- 1. إعدادات البيئة ---
 IS_HOSTED = os.getenv('TELEGRAM_TOKEN') is not None
 TOKEN = os.getenv('TELEGRAM_TOKEN', '8299199892:AAFL-hUeOcKYYvoHV8-MYeIAfAnIhZ8wzi0')
-GROUP_ID = os.getenv('GROUP_ID', '-5141081043')
+GROUP_ID = os.getenv('GROUP_ID', '-1003469225681')
 TIMEZONE = pytz.timezone("Africa/Algiers")
 
 if IS_HOSTED:
