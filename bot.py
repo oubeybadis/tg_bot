@@ -23,6 +23,8 @@ else:
 # --- 2. دالة جلب البيانات ---
 def fetch_data(collection, query=None):
     if IS_HOSTED:
+        if collection == "settings":
+            return db[collection].find_one({"_id": "global_state"})
         return db[collection].find_one(query) if query else db[collection].find_one()
     else:
         try:
@@ -111,7 +113,7 @@ async def scheduled_broadcast(context: ContextTypes.DEFAULT_TYPE):
         new_part = 'evening' if part == 'morning' else 'morning'
         new_day = day + 1 if (part == 'evening' and day < 3) else (1 if part == 'evening' else day)
         new_idx = m_idx + 1 if (part == 'evening' and day == 3) else m_idx
-        db.settings.update_one({"id": "global_state"}, {"$set": {"madhar_index": new_idx, "day_in_cycle": new_day, "day_part": new_part}})
+        db.settings.update_one({"_id": "global_state"}, {"$set": {"madhar_index": new_idx, "day_in_cycle": new_day, "day_part": new_part}})
 
 async def test_full_cycle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     state = fetch_data("settings")
@@ -133,26 +135,18 @@ async def test_group_connection(update: Update, context: ContextTypes.DEFAULT_TY
     except Exception as e:
         await update.message.reply_text(f"❌ فشل الإرسال للمجموعة. تأكد من:\n1. البوت مضاف للمجموعة.\n2. البوت لديه صلاحية إرسال الرسائل.\n\nالخطأ: {str(e)}")
 # --- 6. التشغيل الأساسي (Main) ---
-async def main():
-    request_config = HTTPXRequest(connect_timeout=60, read_timeout=60)
-    # ملاحظة: يفضل تغيير التوكن للامان
-    application = ApplicationBuilder().token(TOKEN).request(request_config).build()
+def main():
+    # استخدام run_polling بدلاً من start_polling اليدوي يمنع التكرار
+    application = ApplicationBuilder().token(TOKEN).build()
+    
     application.add_handler(CommandHandler('test_all', test_full_cycle))
-    application.add_handler(CommandHandler('test_group', test_group_connection))
     application.add_handler(CallbackQueryHandler(handle_callback))
 
     if application.job_queue:
         application.job_queue.run_daily(scheduled_broadcast, time=datetime.time(hour=7, minute=0, tzinfo=TIMEZONE))
         application.job_queue.run_daily(scheduled_broadcast, time=datetime.time(hour=17, minute=0, tzinfo=TIMEZONE))
 
-    async with application:
-        await application.initialize()
-        await application.start()
-        print(f"🚀 البوت يعمل الآن.. النصوص محدثة.")
-        await application.updater.start_polling()
-        while True: await asyncio.sleep(3600)
-
+    print(f"🚀 البوت يعمل الآن.. الوضع: {'Host' if IS_HOSTED else 'Local'}")
+    application.run_polling(drop_pending_updates=True)
 if __name__ == '__main__':
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit): print("👋 تم إيقاف البوت.")
+    main()
